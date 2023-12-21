@@ -1,4 +1,4 @@
-import simpy, numpy, statistics, random
+import simpy, numpy, random
 import settings as setts
 from statistic import Statistic
 
@@ -38,6 +38,7 @@ class TrucksColumn:
         self.unloaded_count += 1
         if self.unloaded_count == len(self.trucks):
             print(f'Колонна №{self.id} разгружена ')
+            self.statistic.base_work_times.append(-1 * self.env.now)
     
 
 class Base:
@@ -84,6 +85,7 @@ def model_base(env: simpy.Environment, statistic: Statistic):
     while True:
         column = TrucksColumn(env, statistic)
         print(f'Колонна №{column.id} прибыла ')
+        statistic.base_work_times.append(env.now)
         env.process(base.wait_unloading_point(column, statistic))
         next_arrival_time = int( numpy.random.exponential(setts.COLUMN_ARRIVAL_TIME_DIFFERENS_PARAM) )
         yield env.timeout(next_arrival_time)
@@ -92,7 +94,4 @@ env = simpy.Environment()
 statistic = Statistic()
 env.process(model_base(env, statistic))
 env.run(until=setts.BASE_MODELLING_TIME)
-
-print()
-print('Среднее значение выгрузки машины ', statistics.mean(statistic.unload_times))
-print('Среднее значение загрузки техники ', statistic.machines_work_time / setts.BASE_MODELLING_TIME)
+statistic.print_mean_statistic()
