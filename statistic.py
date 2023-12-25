@@ -1,5 +1,8 @@
 import statistics
 import settings as setts
+import matplotlib.pyplot as plt
+from settings import PLOT_RATE
+
 
 class TimeObject:
     def __init__(self, id, obj, time):
@@ -70,6 +73,15 @@ class Statistic:
         self.crane_load_times = TimeObjStatistic(env)
         self.forklift_load_times = TimeObjStatistic(env)
         self.unload_point_wait_times = TimeObjStatistic(env)
+
+        self.mean_unload_times = []
+        self.mean_crane_workloads = []
+
+        plt.ion()
+        self.mean_unload_time_plot = plt.plot([], [], label='Среднее время разгрузки')[0]
+        self.mean_crane_workloads_plot = plt.plot([], [], label='Средне время разгрузки с использованием крана')[0]
+        plt.legend()
+        plt.pause(0.1)
         
     def set_column_arrived(self, column):
         print(f'Колонна №{column.id} прибыла')
@@ -86,13 +98,42 @@ class Statistic:
     def set_truck_unload_finish(self, truck):
         self.truck_unloads_times.set_time(truck, -1)
         self.truck_unloads_times.append_dtime(truck)
-    
+        mean_unload_time = statistics.mean(self.truck_unloads_times.dtimes)
+        self.mean_unload_times.append((self.env.now, mean_unload_time))
+        self.mean_unload_time_plot = self.plot_step(
+            self.mean_unload_time_plot, 
+            self.mean_unload_times, 
+            color='orange', 
+            label='Среднее время разгрузки'
+        )
+        
     def set_crane_work_start(self, crane):
         self.crane_load_times.set_time(crane)
+
+    def plot_step(self, plot, series, color='g', label='a'):
+        if len(series) % PLOT_RATE == 0:
+            plot.remove()
+            plot = plt.plot(
+                [x[0] for x in series], 
+                [x[1] for x in series], 
+                color=color,
+                label=label
+            )[0]
+            plt.legend()
+            plt.pause(1e-5)
+        return plot
 
     def set_crane_unload_finish(self, crane):
         self.crane_load_times.set_time(crane, -1)
         self.crane_load_times.append_dtime(crane)
+        mean_crane_workload = statistics.mean(self.crane_load_times.dtimes)
+        self.mean_crane_workloads.append((self.env.now, mean_crane_workload))
+        self.mean_crane_workloads_plot = self.plot_step(
+            self.mean_crane_workloads_plot,
+            self.mean_crane_workloads, 
+            color='blue', 
+            label='Средне время разгрузки с использованием крана'
+        )
     
     def set_forklift_unload_start(self, forklift):
         self.forklift_load_times.set_time(forklift)
