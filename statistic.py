@@ -71,7 +71,7 @@ class Statistic:
         self.crane_load_times = TimeObjStatistic(env)
         self.forklift_load_times = TimeObjStatistic(env)
         self.unload_point_wait_times = TimeObjStatistic(env)
-        
+        self.technic_queue_time = []
         self.unloading_queue_times = []
 
         self.mean_unload_times = []
@@ -86,6 +86,9 @@ class Statistic:
     # Хранить tuple's формата время, длина очереди
     def set_unloading_queue(self, queue_len):
         self.unloading_queue_times.append((self.env.now, queue_len))
+
+    def set_technic_queue(self, queue_len):
+        self.technic_queue_time.append((self.env.now, queue_len))
 
     def set_column_arrived(self, column):
         if setts.DRAW_TEXT_STAT:
@@ -162,12 +165,25 @@ class Statistic:
             mean_column_livetime = statistics.mean(self.column_live_times.dtimes)
             mean_crane_workload = statistics.mean(self.crane_load_times.dtimes)
             mean_forklift_workload = statistics.mean(self.forklift_load_times.dtimes)
+
+            mean_queue = 0
+            for value in self.unloading_queue_times:
+                mean_queue += value[1]
+            mean_queue /= len(self.unloading_queue_times)
+
+            technic_queue = 0
+            for value in self.technic_queue_time:
+                technic_queue += value[1]
+            technic_queue /= len(self.technic_queue_time)
+
             print('\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
             print('Среднее время:')
             print(f'    - пребывания колонны на базе: {round(mean_column_livetime, 0)}')
             print(f'    - выгрузки грузовика: {round(mean_unload_time, 2)}')
-            print(f'    - выгрузки с использованием кранов: {round(mean_crane_workload, 2)}')
-            print(f'    - выгрузки с использованием погручзиков: {round(mean_forklift_workload, 2)}')
+            print(f'    - использованием кранов: {round(mean_crane_workload, 2)}')
+            print(f'    - использованием погручзиков: {round(mean_forklift_workload, 2)}')
+            print(f'    - среднее число машин в ожидании выгрузки: {round(mean_queue, 2)}')
+            print(f'    - среднее число машин в ожидании техники: {round(technic_queue, 2)}')
             print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
 
     def print_workload_statistic(self):

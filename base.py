@@ -46,7 +46,7 @@ class Base:
         for truck in column.trucks:
             unloading = self.unloading_points.points.request()
             yield self.env.timeout(1)
-            self.statistic.set_unloading_queue(len(self.unloading_points.points.queue) + len(self.forklifts.queue) + len(self.cranes.queue))
+            self.statistic.set_unloading_queue(len(self.unloading_points.points.queue) + len(self.unloading_points.points.queue))
             yield unloading
             point_num = self.unloading_points.get_pointnum()
             setattr(unloading, 'point_num', point_num)
@@ -55,15 +55,16 @@ class Base:
     def unload_truck(self, truck: Truck, unloading):
         self.statistic.set_truck_unload_start(truck)
         truck.request_technic(self.cranes, self.forklifts)
-        if truck.needs_crane: 
+        self.statistic.set_technic_queue(len(self.forklifts.queue) + len(self.cranes.queue))
+        if truck.needs_crane:
             yield truck.crane
-            self.statistic.set_crane_work_start(truck.crane)
-        if truck.needs_forklift: 
+            self.statistic.set_crane_work_start(truck.crane) 
+        if truck.needs_forklift:
             yield truck.forklift
-            self.statistic.set_forklift_unload_start(truck.forklift)
+            self.statistic.set_forklift_unload_start(truck.forklift) 
         yield self.env.timeout(truck.unload_time)
         self.unloading_points.release_point(unloading)
         truck.release_technic(self.cranes, self.forklifts)
         self.statistic.set_truck_unload_finish(truck)
         self.statistic.set_unloading_queue(len(self.unloading_points.points.queue) + len(self.forklifts.queue) + len(self.cranes.queue))
-            
+        self.statistic.set_technic_queue(len(self.forklifts.queue) + len(self.cranes.queue))
