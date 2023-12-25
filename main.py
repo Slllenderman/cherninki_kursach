@@ -21,3 +21,4 @@ env.process(model_base(env, statistic))
 env.run(until=setts.MODELLING_TIME)
 
 statistic.print_mean_statistic()
+statistic.print_workload_statistic()

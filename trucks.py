@@ -17,10 +17,8 @@ class Truck:
     def request_technic(self, cranes: simpy.Resource, forklifts: simpy.Resource):
         if self.needs_crane:
             self.crane = cranes.request()
-            self.statistic.set_crane_work_start(self.crane)
         if self.needs_forklift:
             self.forklift = forklifts.request() 
-            self.statistic.set_forklift_unload_start(self.forklift)
 
     def release_technic(self, cranes: simpy.Resource, forklifts: simpy.Resource):
         if self.needs_crane: 

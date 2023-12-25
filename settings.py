@@ -8,13 +8,12 @@ COLUMN_MODE_TRUCKS = 8
 COLUMN_TRUCKS_TYPES_SAME_PARAMS_MATHEXP = 14
 COLUMN_TRUCKS_TYPES_SAME_PARAMS_STDEVIATION = 3 
 
-# Параметры генерации времени разгрузки фур по типу. Экспоненциальный закон с параметром~~~
-# распределяющимся по нормальному закону. В условии нет требования к такому
+# Параметры генерации времени разгрузки фур по типу. Экспоненциальный закон~~~~~~~~~~~~~~~
 TRUCK_TYPES_MATHEXPS = [22, 21, 27, 24, 17, 19, 22, 31, 28, 29]
 
 # Типы фур требующие технику для разгрузки~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-TRUCK_REQUIRES_FORKLIFT_PROBABILITY = 0.4
-TRUCK_REQUIRES_CRANE_PROBABILITY = 0.3
+TRUCK_REQUIRES_FORKLIFT_PROBABILITY = 0.6
+TRUCK_REQUIRES_CRANE_PROBABILITY = 0.6
 
 # Количество техники и точек разгрузки~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 BASE_FORKLIFTS_COUNT = 10

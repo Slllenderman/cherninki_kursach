@@ -53,8 +53,12 @@ class Base:
     def unload_truck(self, truck: Truck, unloading):
         self.statistic.set_truck_unload_start(truck)
         truck.request_technic(self.cranes, self.forklifts)
-        if truck.needs_crane: yield truck.crane
-        if truck.needs_forklift: yield truck.forklift
+        if truck.needs_crane: 
+            yield truck.crane
+            self.statistic.set_crane_work_start(truck.crane)
+        if truck.needs_forklift: 
+            yield truck.forklift
+            self.statistic.set_forklift_unload_start(truck.forklift)
         yield self.env.timeout(truck.unload_time)
         self.unloading_points.release_point(unloading)
         truck.release_technic(self.cranes, self.forklifts)
