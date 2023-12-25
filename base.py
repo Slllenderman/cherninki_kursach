@@ -45,6 +45,7 @@ class Base:
     def wait_unloading_point(self, column: TrucksColumn):
         for truck in column.trucks:
             unloading = self.unloading_points.points.request()
+            yield self.env.timeout(1)
             self.statistic.set_unloading_queue(len(self.unloading_points.points.queue) + len(self.forklifts.queue) + len(self.cranes.queue))
             yield unloading
             point_num = self.unloading_points.get_pointnum()

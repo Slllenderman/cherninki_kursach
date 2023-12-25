@@ -35,5 +35,5 @@ MODELLING_TIME = 43200
 # Параметры отрисовки статистики~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 DRAW_EXPERIMENT = False
 DRAW_TEXT_STAT = False if not DRAW_EXPERIMENT else False
-DRAW_DYNAMIC_GRAPH = True if not DRAW_EXPERIMENT else False
+DRAW_DYNAMIC_GRAPH = False if not DRAW_EXPERIMENT else False
 PLOT_RATE = 100
