@@ -73,7 +73,9 @@ class Statistic:
         self.unload_point_wait_times = TimeObjStatistic(env)
         self.technic_queue_time = []
         self.unloading_queue_times = []
+
         self.mean_unloading_queue_times = []
+        self.mean_technic_queue = []
 
         self.mean_unload_times = []
         self.mean_crane_workloads = []
@@ -91,6 +93,7 @@ class Statistic:
 
     def set_technic_queue(self, queue_len):
         self.technic_queue_time.append((self.env.now, queue_len))
+        self.mean_technic_queue.append((self.env.now, statistics.mean(x[1] for x in self.technic_queue_time)))
 
     def set_column_arrived(self, column):
         if setts.DRAW_TEXT_STAT:
