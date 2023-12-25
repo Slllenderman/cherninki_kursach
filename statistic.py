@@ -73,6 +73,7 @@ class Statistic:
         self.unload_point_wait_times = TimeObjStatistic(env)
         self.technic_queue_time = []
         self.unloading_queue_times = []
+        self.mean_unloading_queue_times = []
 
         self.mean_unload_times = []
         self.mean_crane_workloads = []
@@ -86,6 +87,7 @@ class Statistic:
     # Хранить tuple's формата время, длина очереди
     def set_unloading_queue(self, queue_len):
         self.unloading_queue_times.append((self.env.now, queue_len))
+        self.mean_unloading_queue_times.append((self.env.now, statistics.mean(x[1] for x in self.unloading_queue_times)))
 
     def set_technic_queue(self, queue_len):
         self.technic_queue_time.append((self.env.now, queue_len))
