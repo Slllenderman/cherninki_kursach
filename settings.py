@@ -16,9 +16,9 @@ TRUCK_REQUIRES_FORKLIFT_PROBABILITY = 0.6
 TRUCK_REQUIRES_CRANE_PROBABILITY = 0.6
 
 # Количество техники и точек разгрузки~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-BASE_FORKLIFTS_COUNT = 10
-BASE_CRANES_COUNT = 10
-BASE_UNLOADING_POINTS_COUNT = 10
+BASE_FORKLIFTS_COUNT = 5
+BASE_CRANES_COUNT = 3
+BASE_UNLOADING_POINTS_COUNT = 7
 
 # Стартегия выбора точки для разгрузки. В данном случае реализовано random или sequintial~~
 # В случае random точка разгрузки выбирается случайно из свободных
@@ -32,4 +32,8 @@ ARRIVAL_TIME_DIFFERENS_PARAM = 540
 # Время симуляции~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 MODELLING_TIME = 43200
 
+# Параметры отрисовки статистики~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+DRAW_EXPERIMENT = False
+DRAW_TEXT_STAT = False if not DRAW_EXPERIMENT else False
+DRAW_DYNAMIC_GRAPH = True if not DRAW_EXPERIMENT else False
 PLOT_RATE = 100

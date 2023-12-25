@@ -45,6 +45,7 @@ class Base:
     def wait_unloading_point(self, column: TrucksColumn):
         for truck in column.trucks:
             unloading = self.unloading_points.points.request()
+            self.statistic.set_unloading_queue(len(self.unloading_points.points.queue) + len(self.forklifts.queue) + len(self.cranes.queue))
             yield unloading
             point_num = self.unloading_points.get_pointnum()
             setattr(unloading, 'point_num', point_num)
@@ -63,3 +64,5 @@ class Base:
         self.unloading_points.release_point(unloading)
         truck.release_technic(self.cranes, self.forklifts)
         self.statistic.set_truck_unload_finish(truck)
+        self.statistic.set_unloading_queue(len(self.unloading_points.points.queue) + len(self.forklifts.queue) + len(self.cranes.queue))
+            
