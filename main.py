@@ -1,16 +1,30 @@
 import simpy, numpy, random
-import settings as setts
 from statistic import Statistic
 
-class TrucksColumn:
+COLUMN_MIN_TRUCKS = 4
+COLUMN_MAX_TRUCKS = 10
+COLUMN_MODE_TRUCKS = 8
+COLUMN_TRUCKS_TYPES_COUNT = 10
+COLUMN_TRUCKS_TYPES_SAME_PARAMS_MATHEXP = 14
+COLUMN_TRUCKS_TYPES_SAME_PARAMS_STDEVIATION = 3 
+COLUMN_TRUCKS_TYPES_UNLOADING_PARAMS = [22, 21, 27, 24, 17, 19, 22, 31, 28, 29]
+COLUMN_ARRIVAL_TIME_DIFFERENS_PARAM = 540
+COLUMN_TRUCKS_TYPES_REQUIRES_FORKLIFT = [0, 1, 2, 3]
+COLUMN_TRUCKS_TYPES_REQUIRES_CRANE = [7, 8, 9]
+BASE_FORKLIFTS_COUNT = 7
+BASE_CRANES_COUNT = 5
+BASE_UNLOADING_POINTS_COUNT = 10
+BASE_MODELLING_TIME = 43200
+
+class Column:
 
     GLOBAL_COLUMN_COUNT = 0
 
     def __init__(self, env: simpy.Environment, statistic: Statistic):
         self.env = env
         self.statistic = statistic
-        self.id = TrucksColumn.GLOBAL_COLUMN_COUNT
-        TrucksColumn.GLOBAL_COLUMN_COUNT += 1
+        self.id = Column.GLOBAL_COLUMN_COUNT
+        Column.GLOBAL_COLUMN_COUNT += 1
         self.unloaded_count = 0
         self.generate_trucks()
 
@@ -18,17 +32,17 @@ class TrucksColumn:
         self.trucks = []
         types_quantity = int( 
             numpy.random.triangular(
-                left=setts.COLUMN_MIN_TRUCKS, 
-                right=setts.COLUMN_MAX_TRUCKS, 
-                mode=setts.COLUMN_MODE_TRUCKS
+                left=COLUMN_MIN_TRUCKS, 
+                right=COLUMN_MAX_TRUCKS, 
+                mode=COLUMN_MODE_TRUCKS
             )
         )
         for i in range(types_quantity):
-            trucks_type = numpy.random.choice( [i for i in range(setts.COLUMN_TRUCKS_TYPES_COUNT)] )
+            trucks_type = numpy.random.choice( [i for i in range(COLUMN_TRUCKS_TYPES_COUNT)] )
             truck_types_count = int(
                 numpy.random.normal(
-                    loc=setts.COLUMN_TRUCKS_TYPES_SAME_PARAMS_MATHEXP,
-                    scale=setts.COLUMN_TRUCKS_TYPES_SAME_PARAMS_STDEVIATION
+                    loc=COLUMN_TRUCKS_TYPES_SAME_PARAMS_MATHEXP,
+                    scale=COLUMN_TRUCKS_TYPES_SAME_PARAMS_STDEVIATION
                 )
             )
             self.trucks += [trucks_type for i in range(truck_types_count)]
@@ -38,60 +52,64 @@ class TrucksColumn:
         self.unloaded_count += 1
         if self.unloaded_count == len(self.trucks):
             print(f'Колонна №{self.id} разгружена ')
-            self.statistic.base_work_times.append(-1 * self.env.now)
     
 
-class Base:
+class UnloadingBase:
     def __init__(self, env: simpy.Environment, statistic: Statistic):
         self.env = env
         self.statistic = statistic
-        self.unloading_points = simpy.Resource(env, capacity=setts.BASE_UNLOADING_POINTS_COUNT)
-        self.cranes = simpy.Resource(env, capacity=setts.BASE_CRANES_COUNT)
-        self.forklifts = simpy.Resource(env, capacity=setts.BASE_FORKLIFTS_COUNT)
+        self.unloading_points = simpy.Resource(env, capacity=BASE_UNLOADING_POINTS_COUNT)
+        self.cranes = simpy.Resource(env, capacity=BASE_CRANES_COUNT)
+        self.forklifts = simpy.Resource(env, capacity=BASE_FORKLIFTS_COUNT)
             
-    def wait_unloading_point(self, column: TrucksColumn, statistic: Statistic):
+    def wait_unloading_point(self, column: Column, statistic: Statistic):
         for truck in column.trucks:
+            yield self.env.timeout(1)
             unloading = self.unloading_points.request()
             yield unloading
             self.env.process(self.unload_truck(truck, column, unloading))
 
     def unload_truck(self, truck, column, unloading):
         forklift = crane = None
-        unload_time_start = self.env.now
-        if truck in setts.COLUMN_TRUCKS_TYPES_REQUIRES_CRANE:
+        unloading_start = self.env.now
+        if truck in COLUMN_TRUCKS_TYPES_REQUIRES_CRANE:
             crane = self.cranes.request()
+            self.statistic.set_crane_work_start(crane)
             yield crane
-        if truck in setts.COLUMN_TRUCKS_TYPES_REQUIRES_FORKLIFT:
+        if truck in COLUMN_TRUCKS_TYPES_REQUIRES_FORKLIFT:
             forklift = self.forklifts.request()
+            self.statistic.set_forklift_unload_start(forklift)
             yield forklift
 
-        time_exponenta = setts.COLUMN_TRUCKS_TYPES_UNLOADING_PARAMS[truck]
+        self.statistic.set_technic_queue(len(self.cranes.queue) + len(self.forklifts.queue))
+        time_exponenta = COLUMN_TRUCKS_TYPES_UNLOADING_PARAMS[truck]
         unloading_time = numpy.random.exponential(time_exponenta)
         yield self.env.timeout(unloading_time)
         
         column.unloaded_truck()
-        statistic.unload_times.append(self.env.now - unload_time_start)
+        yield self.env.timeout(1)
+        self.statistic.truck_unloads_times.append(self.env.now - unloading_start)
         self.unloading_points.release(unloading)
-        if truck in setts.COLUMN_TRUCKS_TYPES_REQUIRES_CRANE:
-            statistic.machines_work_time += self.env.now - unload_time_start 
+        if truck in COLUMN_TRUCKS_TYPES_REQUIRES_CRANE:
             self.cranes.release(crane)
-        if truck in setts.COLUMN_TRUCKS_TYPES_REQUIRES_FORKLIFT:
-            statistic.machines_work_time += self.env.now - unload_time_start
+            self.statistic.set_crane_unload_finish(crane)
+        if truck in COLUMN_TRUCKS_TYPES_REQUIRES_FORKLIFT:
+            self.statistic.set_forklift_unload_finish(forklift)
             self.forklifts.release(forklift)
+        self.statistic.set_technic_queue(len(self.cranes.queue) + len(self.forklifts.queue))
         
     
-def model_base(env: simpy.Environment, statistic: Statistic):
-    base = Base(env, statistic)
+def modeling(env: simpy.Environment, statistic: Statistic):
+    base = UnloadingBase(env, statistic)
     while True:
-        column = TrucksColumn(env, statistic)
-        print(f'Колонна №{column.id} прибыла ')
-        statistic.base_work_times.append(env.now)
+        column = Column(env, statistic)
+        print(f'Колонна №{column.id} прибыла')
         env.process(base.wait_unloading_point(column, statistic))
-        next_arrival_time = int( numpy.random.exponential(setts.COLUMN_ARRIVAL_TIME_DIFFERENS_PARAM) )
+        next_arrival_time = int( numpy.random.exponential(COLUMN_ARRIVAL_TIME_DIFFERENS_PARAM) )
         yield env.timeout(next_arrival_time)
         
 env = simpy.Environment()
-statistic = Statistic()
-env.process(model_base(env, statistic))
-env.run(until=setts.BASE_MODELLING_TIME)
+statistic = Statistic(env)
+env.process(modeling(env, statistic))
+env.run(until=BASE_MODELLING_TIME)
 statistic.print_mean_statistic()
