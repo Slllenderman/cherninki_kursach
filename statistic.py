@@ -7,8 +7,6 @@ BASE_MODELLING_TIME = 43200
 
 DRAW_EXPERIMENT = False
 DRAW_TEXT_STAT = True if not DRAW_EXPERIMENT else False
-DRAW_DYNAMIC_GRAPH = False if not DRAW_EXPERIMENT else False
-PLOT_RATE = 100
 
 class TimeObject:
     def __init__(self, id, obj, time):
@@ -60,19 +58,16 @@ class Statistic:
         self.unload_point_wait_times = TimeObjStatistic(env)
         self.technic_queue_time = []
         self.unloading_queue_times = []
+        self.mean_unloading_queue_times = []
 
         self.mean_unload_times = []
         self.mean_crane_workloads = []
-        if DRAW_DYNAMIC_GRAPH:
-            plt.ion()
-            self.mean_unload_time_plot = plt.plot([], [], label='Среднее время разгрузки')[0]
-            self.mean_crane_workloads_plot = plt.plot([], [], label='Средне время разгрузки с использованием крана')[0]
-            plt.legend()
-            plt.pause(0.1)
+        
         
     # Хранить tuple's формата время, длина очереди
     def set_unloading_queue(self, queue_len):
         self.unloading_queue_times.append((self.env.now, queue_len))
+        self.mean_unloading_queue_times.append((self.env.now, statistics.mean(x[1] for x in self.unloading_queue_times)))
 
     def set_technic_queue(self, queue_len):
         self.technic_queue_time.append((self.env.now, queue_len))
@@ -109,19 +104,6 @@ class Statistic:
     def set_crane_work_start(self, crane):
         if DRAW_TEXT_STAT:
             self.crane_load_times.set_time(crane)
-
-    def plot_step(self, plot, series, color='g', label='a'):
-        if len(series) % PLOT_RATE == 0:
-            plot.remove()
-            plot = plt.plot(
-                [x[0] for x in series], 
-                [x[1] for x in series], 
-                color=color,
-                label=label
-            )[0]
-            plt.legend()
-            plt.pause(1e-5)
-        return plot
 
     def set_crane_unload_finish(self, crane):
         if DRAW_TEXT_STAT:

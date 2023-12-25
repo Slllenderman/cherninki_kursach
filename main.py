@@ -1,5 +1,7 @@
 import simpy, numpy, random
 from statistic import Statistic
+import matplotlib.pyplot as plt
+from scipy.stats import ttest_ind
 
 COLUMN_MIN_TRUCKS = 4
 COLUMN_MAX_TRUCKS = 10
@@ -8,13 +10,14 @@ COLUMN_TRUCKS_TYPES_COUNT = 10
 COLUMN_TRUCKS_TYPES_SAME_PARAMS_MATHEXP = 14
 COLUMN_TRUCKS_TYPES_SAME_PARAMS_STDEVIATION = 3 
 COLUMN_TRUCKS_TYPES_UNLOADING_PARAMS = [22, 21, 27, 24, 17, 19, 22, 31, 28, 29]
-COLUMN_ARRIVAL_TIME_DIFFERENS_PARAM = 540
+COLUMN_COLUMN_BASE_ARRIVAL_TIME_DIFFERENS_PARAM = 540
 COLUMN_TRUCKS_TYPES_REQUIRES_FORKLIFT = [0, 1, 2, 3]
 COLUMN_TRUCKS_TYPES_REQUIRES_CRANE = [7, 8, 9]
 BASE_FORKLIFTS_COUNT = 7
 BASE_CRANES_COUNT = 5
 BASE_UNLOADING_POINTS_COUNT = 10
 BASE_MODELLING_TIME = 43200
+ALPHA = 0.05
 
 class Column:
 
@@ -96,6 +99,7 @@ class UnloadingBase:
         if truck in COLUMN_TRUCKS_TYPES_REQUIRES_FORKLIFT:
             self.statistic.set_forklift_unload_finish(forklift)
             self.forklifts.release(forklift)
+        self.statistic.set_unloading_queue(len(self.unloading_points.queue))
         self.statistic.set_technic_queue(len(self.cranes.queue) + len(self.forklifts.queue))
         
     
@@ -105,11 +109,77 @@ def modeling(env: simpy.Environment, statistic: Statistic):
         column = Column(env, statistic)
         print(f'Колонна №{column.id} прибыла')
         env.process(base.wait_unloading_point(column, statistic))
-        next_arrival_time = int( numpy.random.exponential(COLUMN_ARRIVAL_TIME_DIFFERENS_PARAM) )
+        next_arrival_time = int( numpy.random.exponential(COLUMN_COLUMN_BASE_ARRIVAL_TIME_DIFFERENS_PARAM) )
         yield env.timeout(next_arrival_time)
         
 env = simpy.Environment()
-statistic = Statistic(env)
-env.process(modeling(env, statistic))
+statistic1 = Statistic(env)
+env.process(modeling(env, statistic1))
 env.run(until=BASE_MODELLING_TIME)
-statistic.print_mean_statistic()
+statistic1.print_mean_statistic()
+
+prev_forklifts = BASE_FORKLIFTS_COUNT
+BASE_FORKLIFTS_COUNT = 1
+Column.GLOBAL_COLUMN_COUNT = 0
+print(f'Уменьшили количество форклифтеров до {BASE_FORKLIFTS_COUNT}')
+env = simpy.Environment()
+statistic2 = Statistic(env)
+env.process(modeling(env, statistic2))
+env.run(until=BASE_MODELLING_TIME)
+
+t, pval = ttest_ind(
+    [x[1] for x in statistic1.unloading_queue_times],
+    [x[1] for x in statistic2.unloading_queue_times],
+    random_state=1,
+    alternative='less'
+)
+if pval < ALPHA:
+    print('Отвергаем нулевую гипотезу о равенстве среднего размера очереди. Принимаем гипотезу, что средний размер очереди во втором эксперименте увеличлся')
+else:
+    print('Нет оснований отвергать гипотезу о равенстве средних размеров очереди в первом и втором эксперименте')
+plt.plot([
+    x[0] for x in statistic1.mean_unloading_queue_times], 
+    [x[1] for x in statistic1.mean_unloading_queue_times], 
+    label=f'forklifts={prev_forklifts}'
+)
+plt.plot(
+    [x[0] for x in statistic2.mean_unloading_queue_times], 
+    [x[1] for x in statistic2.mean_unloading_queue_times], 
+    label=f'forklifts={BASE_FORKLIFTS_COUNT}'
+)
+plt.legend()
+plt.show()
+
+
+BASE_FORKLIFTS_COUNT = prev_forklifts
+prev_arrival_interval = COLUMN_COLUMN_BASE_ARRIVAL_TIME_DIFFERENS_PARAM
+COLUMN_COLUMN_BASE_ARRIVAL_TIME_DIFFERENS_PARAM //= 2
+Column.GLOBAL_COLUMN_COUNT = 0
+print(f'Уменьшили интервал времени прибытия до {COLUMN_COLUMN_BASE_ARRIVAL_TIME_DIFFERENS_PARAM}')
+env = simpy.Environment()
+statistic3 = Statistic(env)
+env.process(modeling(env, statistic3))
+env.run(until=BASE_MODELLING_TIME)
+
+t, pval = ttest_ind(
+    [x[1] for x in statistic1.unloading_queue_times],
+    [x[1] for x in statistic3.unloading_queue_times],
+    random_state=1,
+    alternative='less'
+)
+if pval < ALPHA:
+    print('Отвергаем нулевую гипотезу о равенстве среднего размера очереди. Принимаем гипотезу, что средний размер очереди во втором эксперименте увеличлся')
+else:
+    print('Нет оснований отвергать гипотезу о равенстве средних размеров очереди в первом и втором эксперименте')
+plt.plot(
+    [x[0] for x in statistic1.mean_unloading_queue_times], 
+    [x[1] for x in statistic1.mean_unloading_queue_times], 
+    label=f'arrival_interval={prev_arrival_interval}'
+)
+plt.plot(
+    [x[0] for x in statistic3.mean_unloading_queue_times], 
+    [x[1] for x in statistic3.mean_unloading_queue_times], 
+    label=f'arrival_interval={COLUMN_COLUMN_BASE_ARRIVAL_TIME_DIFFERENS_PARAM}'
+)
+plt.legend()
+plt.show()
